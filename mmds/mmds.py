@@ -21,12 +21,13 @@ __all__ = ["Space", 'read_dm']
 
 
 class Space:
-    def __init__(self, dm: pd.DataFrame):
+    def __init__(self, dm: pd.DataFrame, mdim: int=0):
         """
         Initialise the Space and calculate active samples' positions.
         The DM must be strictly finite, real and symmetric. It's index must be
         equal to its keys.
         :param dm: a metric distance matrix
+        :param mdim: the maximum number of dimensions if nonzero and positive
         """
         if not len(dm):
             raise ValueError("a distance matrix can't be empty")
@@ -52,7 +53,12 @@ class Space:
         # decompose
         eigen = np.linalg.eigh(s)
         # drop negative eigenvalues and sort by eigenvalues in descending order
-        ordering = np.where(eigen[0] > 0)[0][::-1]
+        ordering = None
+        if mdim <= 0 and mdim >= len(eigen[0]):
+            ordering = np.where(eigen[0] > 0)[0][::-1]
+        else:
+            threshold = np.sort(eigen[0].copy())[-mdim]
+            ordering = np.where(np.logical_and(np.greater(eigen[0], 0), np.greater_equal(eigen[0], threshold)))[0][::-1]
         values = eigen[0][ordering]
         vectors = eigen[1][:, ordering]
         # compute and format coordinates
